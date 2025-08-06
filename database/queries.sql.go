@@ -7,10 +7,72 @@ package database
 
 import (
 	"context"
+	"database/sql"
 )
 
+const closeSession = `-- name: CloseSession :many
+UPDATE play_sessions
+SET end_time     = ?1,
+    force_closed = ?2,
+    invalid      = CASE
+                       WHEN ?1 < start_time THEN 1
+                       ELSE 0
+        END
+WHERE end_time IS NULL
+RETURNING id, game_id, start_time, end_time, force_closed, invalid
+`
+
+type CloseSessionParams struct {
+	EndTime     sql.NullString
+	ForceClosed sql.NullInt64
+}
+
+func (q *Queries) CloseSession(ctx context.Context, arg CloseSessionParams) ([]PlaySession, error) {
+	rows, err := q.db.QueryContext(ctx, closeSession, arg.EndTime, arg.ForceClosed)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []PlaySession
+	for rows.Next() {
+		var i PlaySession
+		if err := rows.Scan(
+			&i.ID,
+			&i.GameID,
+			&i.StartTime,
+			&i.EndTime,
+			&i.ForceClosed,
+			&i.Invalid,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const fetchIDByPath = `-- name: FetchIDByPath :one
+SELECT id
+FROM games
+WHERE path = ?
+`
+
+func (q *Queries) FetchIDByPath(ctx context.Context, path sql.NullString) (int64, error) {
+	row := q.db.QueryRowContext(ctx, fetchIDByPath, path)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}
+
 const listGames = `-- name: ListGames :many
-SELECT id, name, system_tag, path, image_path, created_at, updated_at FROM games
+SELECT id, name, path, updated_at
+FROM games
 ORDER BY name
 `
 
@@ -26,10 +88,7 @@ func (q *Queries) ListGames(ctx context.Context) ([]Game, error) {
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
-			&i.SystemTag,
 			&i.Path,
-			&i.ImagePath,
-			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
@@ -43,4 +102,38 @@ func (q *Queries) ListGames(ctx context.Context) ([]Game, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const newGame = `-- name: NewGame :one
+INSERT INTO games (name, path, updated_at)
+VALUES (?, ?, ?)
+RETURNING id
+`
+
+type NewGameParams struct {
+	Name      sql.NullString
+	Path      sql.NullString
+	UpdatedAt sql.NullString
+}
+
+func (q *Queries) NewGame(ctx context.Context, arg NewGameParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, newGame, arg.Name, arg.Path, arg.UpdatedAt)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}
+
+const startSession = `-- name: StartSession :exec
+INSERT INTO play_sessions (game_id, start_time)
+VALUES (?, ?)
+`
+
+type StartSessionParams struct {
+	GameID    sql.NullInt64
+	StartTime sql.NullString
+}
+
+func (q *Queries) StartSession(ctx context.Context, arg StartSessionParams) error {
+	_, err := q.db.ExecContext(ctx, startSession, arg.GameID, arg.StartTime)
+	return err
 }

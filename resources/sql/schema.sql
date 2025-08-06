@@ -2,10 +2,7 @@ CREATE TABLE games
 (
     id         INTEGER PRIMARY KEY,
     name       TEXT,
-    system_tag TEXT,
     path       TEXT,
-    image_path TEXT,
-    created_at TEXT,
     updated_at TEXT
 );
 
@@ -20,11 +17,12 @@ CREATE INDEX games_path_index
 
 CREATE TABLE play_sessions
 (
-    id         INTEGER PRIMARY KEY,
-    game_id    INTEGER,
-    start_time TEXT,
-    end_time   TEXT,
-    playtime   INTEGER
+    id           INTEGER PRIMARY KEY,
+    game_id      INTEGER,
+    start_time   TEXT,
+    end_time     TEXT,
+    force_closed INTEGER DEFAULT 0,
+    invalid      INTEGER DEFAULT 0
 );
 
 CREATE UNIQUE INDEX play_session_id_index

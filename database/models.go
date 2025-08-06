@@ -11,17 +11,15 @@ import (
 type Game struct {
 	ID        int64
 	Name      sql.NullString
-	SystemTag sql.NullString
 	Path      sql.NullString
-	ImagePath sql.NullString
-	CreatedAt sql.NullString
 	UpdatedAt sql.NullString
 }
 
 type PlaySession struct {
-	ID        int64
-	GameID    sql.NullInt64
-	StartTime sql.NullString
-	EndTime   sql.NullString
-	Playtime  sql.NullInt64
+	ID          int64
+	GameID      sql.NullInt64
+	StartTime   sql.NullString
+	EndTime     sql.NullString
+	ForceClosed sql.NullInt64
+	Invalid     sql.NullInt64
 }
