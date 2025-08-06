@@ -1,0 +1,6 @@
+version: '3'
+
+tasks:
+
+  gen-db:
+    cmd: sqlc generate
