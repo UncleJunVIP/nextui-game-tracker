@@ -12,9 +12,7 @@ var (
 		Use:   "game-tracker",
 		Short: "A CLI tool for tracking NextUI game sessions.",
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			if isDev {
-				database.EnableDevMode()
-			}
+			database.InitializeDB(isDev)
 		},
 	}
 )

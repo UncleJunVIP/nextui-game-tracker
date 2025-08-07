@@ -4,3 +4,19 @@ tasks:
 
   gen-db:
     cmd: sqlc generate
+
+  build-dev:
+    cmd: go build -o nextui-game-tracker app/game_tracker.go
+
+  build:
+    cmd: CGO_ENABLED=0 GOOS=linux go build -o gametimectl.elf app/game_tracker.go
+
+  test:
+    cmds:
+      - ./nextui-game-tracker start "/Roms/Game Boy (GB)/Tetris Rosy Retrospection.gb" -d
+      - ./nextui-game-tracker start "/Roms/Game Boy (GB)/Tetris Rosy Retrospection.gb" -d
+      - ./nextui-game-tracker start "/Roms/Game Boy (GB)/Tetris Rosy Retrospection.gb" -d
+      - ./nextui-game-tracker stop "/Roms/Game Boy (GB)/Tetris Rosy Retrospection.gb" -d
+      - ./nextui-game-tracker resume -d
+      - ./nextui-game-tracker start "/Roms/Game Boy (GB)/Amazing Tater.gb" -d
+      - ./nextui-game-tracker stop_all -d

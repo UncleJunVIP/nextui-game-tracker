@@ -10,53 +10,6 @@ import (
 	"database/sql"
 )
 
-const closeSession = `-- name: CloseSession :many
-UPDATE play_sessions
-SET end_time     = ?1,
-    force_closed = ?2,
-    invalid      = CASE
-                       WHEN ?1 < start_time THEN 1
-                       ELSE 0
-        END
-WHERE end_time IS NULL
-RETURNING id, game_id, start_time, end_time, force_closed, invalid
-`
-
-type CloseSessionParams struct {
-	EndTime     sql.NullString
-	ForceClosed sql.NullInt64
-}
-
-func (q *Queries) CloseSession(ctx context.Context, arg CloseSessionParams) ([]PlaySession, error) {
-	rows, err := q.db.QueryContext(ctx, closeSession, arg.EndTime, arg.ForceClosed)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []PlaySession
-	for rows.Next() {
-		var i PlaySession
-		if err := rows.Scan(
-			&i.ID,
-			&i.GameID,
-			&i.StartTime,
-			&i.EndTime,
-			&i.ForceClosed,
-			&i.Invalid,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const fetchIDByPath = `-- name: FetchIDByPath :one
 SELECT id
 FROM games
@@ -68,6 +21,28 @@ func (q *Queries) FetchIDByPath(ctx context.Context, path sql.NullString) (int64
 	var id int64
 	err := row.Scan(&id)
 	return id, err
+}
+
+const findLastSession = `-- name: FindLastSession :one
+SELECT id, game_id, start_time, end_time, force_stopped, invalid, deleted
+FROM main.play_sessions
+ORDER BY id DESC
+LIMIT 1
+`
+
+func (q *Queries) FindLastSession(ctx context.Context) (PlaySession, error) {
+	row := q.db.QueryRowContext(ctx, findLastSession)
+	var i PlaySession
+	err := row.Scan(
+		&i.ID,
+		&i.GameID,
+		&i.StartTime,
+		&i.EndTime,
+		&i.ForceStopped,
+		&i.Invalid,
+		&i.Deleted,
+	)
+	return i, err
 }
 
 const listGames = `-- name: ListGames :many
@@ -136,4 +111,52 @@ type StartSessionParams struct {
 func (q *Queries) StartSession(ctx context.Context, arg StartSessionParams) error {
 	_, err := q.db.ExecContext(ctx, startSession, arg.GameID, arg.StartTime)
 	return err
+}
+
+const stopSession = `-- name: StopSession :many
+UPDATE play_sessions
+SET end_time      = ?1,
+    force_stopped = ?2,
+    invalid       = CASE
+                        WHEN ?1 < start_time THEN 1
+                        ELSE 0
+        END
+WHERE end_time IS NULL
+RETURNING id, game_id, start_time, end_time, force_stopped, invalid, deleted
+`
+
+type StopSessionParams struct {
+	EndTime      sql.NullString
+	ForceStopped sql.NullInt64
+}
+
+func (q *Queries) StopSession(ctx context.Context, arg StopSessionParams) ([]PlaySession, error) {
+	rows, err := q.db.QueryContext(ctx, stopSession, arg.EndTime, arg.ForceStopped)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []PlaySession
+	for rows.Next() {
+		var i PlaySession
+		if err := rows.Scan(
+			&i.ID,
+			&i.GameID,
+			&i.StartTime,
+			&i.EndTime,
+			&i.ForceStopped,
+			&i.Invalid,
+			&i.Deleted,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

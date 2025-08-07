@@ -16,10 +16,11 @@ type Game struct {
 }
 
 type PlaySession struct {
-	ID          int64
-	GameID      sql.NullInt64
-	StartTime   sql.NullString
-	EndTime     sql.NullString
-	ForceClosed sql.NullInt64
-	Invalid     sql.NullInt64
+	ID           int64
+	GameID       sql.NullInt64
+	StartTime    sql.NullString
+	EndTime      sql.NullString
+	ForceStopped sql.NullInt64
+	Invalid      sql.NullInt64
+	Deleted      sql.NullInt64
 }

@@ -8,19 +8,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var gamePath string
-
 func init() {
-	startCommand.Flags().StringVarP(&gamePath, "game", "g", "",
-		"path of the game's ROM file to start a play session")
-	startCommand.MarkFlagRequired("game")
 	rootCmd.AddCommand(startCommand)
 }
 
 var startCommand = &cobra.Command{
-	Use:   "start",
+	Use:   "start <game-path>",
 	Short: "Start a new game session, forcibly closing any existing sessions",
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
+		gamePath := args[0]
 		err := database.StartSession(gamePath)
 		if err != nil {
 			log.Printf("Unable to start session for \"%s\": %s\n", gamePath, err.Error())
